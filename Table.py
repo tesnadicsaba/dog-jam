@@ -15,6 +15,12 @@ class Table:
         self.table[0][int(self.size / 2)] = 1
         self.table[size - 1][int(self.size / 2)] = 2
 
+    def copy(self, table):
+        self.size = table.size
+        self.starting = table.starting
+        self.current = table.current
+        self.table = table.table
+
     # check if a position is between the limits of the table
     def is_correct_position(self, position):
         if 0 <= position[0] < self.size and 0 <= position[1] < self.size:
@@ -40,7 +46,7 @@ class Table:
 
             return 1
 
-        return 0
+        return -1
 
     # returns the players position
     def get_player_position(self, player):
@@ -134,4 +140,11 @@ class Table:
                 print(f'{self.get_item([i, j])}', end=" ")
             print('\n')
 
+    def change_current_player(self):
+        if self.current == 1:
+            self.current = 2
+        else:
+            self.current = 1
 
+    def copy_table(self):
+        return self.table

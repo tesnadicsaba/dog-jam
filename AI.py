@@ -1,45 +1,50 @@
 import math
+
+import numpy as np
+
 from Table import Table
+import AI2
 
 
 class AI:
     # AI gets a specification of a table and makes the best moves to win the game
-    def __init__(self, table, nr_round, depth):
+    table: Table
+
+    def __init__(self, table, depth):
         self.table = table
         self.newtable = table
-        self.current = 2  # this means that it`s the computers turn
-        self.round = nr_round
         self.depth = depth
-        print(table)
-
-    def change_current_player(self):
-        if self.current == 2:
-            self.current = 1
-        else:
-            self.current = 2
+        self.value = self.compare_by_free_spaces_arround([1, 200])
 
     def compare_by_free_spaces_arround(self, multiplifiers):
         player_free_position = self.newtable.free_spaces_arround(1)
         ai_free_position = self.newtable.free_spaces_arround(2)
 
-        return ai_free_position * multiplifiers[0] - player_free_position * multiplifiers[1]
+        return ai_free_position * multiplifiers[1] - player_free_position * multiplifiers[0]
 
     def get_tables(self):  # , table: Table):
-        ai_neighbours = self.newtable.get_neighbours(2)
-        player_neighbours = self.newtable.get_neighbours(1)
+        my_neighbours = self.table.get_neighbours(2)
+        opponent_neighbours = self.table.get_neighbours(1)
         tables = []
 
-        if self.current == 1:
-            neighbours = ai_neighbours
-            ai_neighbours = player_neighbours
-            player_neighbours = neighbours
+        if self.table.current == 1:
+            neighbours = my_neighbours
+            my_neighbours = opponent_neighbours
+            opponent_neighbours = neighbours
 
-        modified_table = self.newtable
-        for ai_neighbour in ai_neighbours:
-            modified_table.move_player(ai_neighbour, 2)
-            for player_neighbour in player_neighbours:
-                modified_table.change_to_wall(player_neighbour)
-                tables.append(modified_table)
+        for ai_neighbour in my_neighbours:
+
+            print("mytable:")
+            self.table.print_table()
+            print("///")
+            modified_table = self.table.move_player(ai_neighbour, self.table.current)
+            for player_neighbour in opponent_neighbours:
+
+                if modified_table.is_empty(player_neighbour):
+                    new_mod = modified_table.change_to_wall(player_neighbour)
+                    print("tables:")
+                    new_mod.print_table()
+                    tables.append(new_mod)
 
         return tables
 
@@ -53,18 +58,20 @@ class AI:
         return self.compare_by_free_spaces_arround([1, 200])
 
     def minimax_alg(self, alpha, beta, depth):
-        score = self.newtable.check_winner()
+        score = self.check_score(self.table)
         if score == 1 or score == 2 or self.depth == 0:
-            return self.newtable, self.check_score(self.newtable)
+            return self.table, self.check_score(self.table)
 
         if depth > 0:
-            if self.current == 2:  # computer`s turn
+            if self.table.current == 2:  # computer`s turn
 
                 possible_tables = self.get_tables()
                 best_val = -math.inf
-                for tabel in possible_tables:
-                    self.change_current_player()
-                    self.newtable = tabel
+                print(possible_tables)
+                for tab in possible_tables:
+                    self.newtable = tab
+                    self.table.change_current_player()
+
                     new_table, value = self.minimax_alg(alpha, beta, depth - 1)
 
                     if value > best_val:
@@ -78,9 +85,9 @@ class AI:
             else:
                 possible_tables = self.get_tables()
                 best_val = math.inf
-                for tabel in possible_tables:
-                    self.change_current_player()
-                    self.newtable = tabel
+                for tab in possible_tables:
+                    self.newtable = tab
+                    self.table.change_current_player()
                     new_table, value = self.minimax_alg(alpha, beta, depth - 1)
 
                     if value < best_val:
@@ -91,8 +98,38 @@ class AI:
                     if beta <= alpha:
                         break
 
-            self.newtable.print_table()
-            return self.newtable, best_val
+            # self.newtable.print_table()
+            return self.table, best_val
+
+
+def recalc(table):
+    new = np.empty((3, 3), dtype=str)
+    for i in range(3):
+        for j in range(3):
+            if table[i][j] == 0:
+                new[i][j] = 'E'
+            if table[i][j] == 1:
+                new[i][j] = 'P'
+            if table[i][j] == 2:
+                new[i][j] = 'B'
+            if table[i][j] == -1:
+                new[i][j] = 'W'
+    return new
+
+
+def rerecalc(table):
+    new = np.empty((3, 3), dtype=int)
+    for i in range(3):
+        for j in range(3):
+            if table[i][j] == 'E':
+                new[i][j] = 0
+            if table[i][j] == 'P':
+                new[i][j] = 1
+            if table[i][j] == 'B':
+                new[i][j] = 2
+            if tabb[i][j] == 'W':
+                new[i][j] = -1
+    return new
 
 
 mytable = Table(3, 1)
@@ -104,14 +141,18 @@ while mytable.check_winner() == 0:
         y = input('Y=')
         mytable.move_player([int(x), int(y)], 1)
         mytable.print_table()
+
         x = input('X=')
         y = input('Y=')
         mytable.change_to_wall([int(x), int(y)])
         mytable.print_table()
         mytable.current = 2
     else:
-        ai = AI(mytable, 2, 3)
-        mytable, val = ai.minimax_alg(-math.inf, math.inf, 3)
+        ai = AI(mytable, 2)
+        tab = recalc(mytable.table)
+        tabb, val = AI2.minimax(tab, 3, True, -math.inf, math.inf, 3)
+        mytable.table = rerecalc(tabb)
         mytable.current = 1
+        mytable.print_table()
 
-print(mytable.check_winner())
+print(f'winner {mytable.check_winner()}')
